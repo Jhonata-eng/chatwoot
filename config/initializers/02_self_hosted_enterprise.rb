@@ -14,9 +14,11 @@
 # This is idempotent — safe to run on every boot without side effects.
 
 return unless ENV.fetch('SELF_HOSTED_ENTERPRISE', 'false').casecmp?('true')
-return unless ChatwootApp.enterprise?
 
 Rails.application.config.after_initialize do
+  # ChatwootApp may not be loaded during early initialization (e.g., db:migrate)
+  next unless defined?(ChatwootApp) && ChatwootApp.enterprise?
+
   # Guard against running before the database is ready (e.g., during db:create)
   unless ActiveRecord::Base.connection.table_exists?('installation_configs') &&
          ActiveRecord::Base.connection.table_exists?('accounts')
