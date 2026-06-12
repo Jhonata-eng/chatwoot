@@ -22,7 +22,10 @@ module ChatwootApp
   end
 
   def self.self_hosted_enterprise?
-    enterprise? && !chatwoot_cloud? && GlobalConfig.get_value('INSTALLATION_PRICING_PLAN') == 'enterprise'
+    return false unless enterprise?
+    return false if chatwoot_cloud?
+
+    ENV.fetch('SELF_HOSTED_ENTERPRISE', 'false').casecmp?('true') || GlobalConfig.get_value('INSTALLATION_PRICING_PLAN') == 'enterprise'
   end
 
   def self.custom?
