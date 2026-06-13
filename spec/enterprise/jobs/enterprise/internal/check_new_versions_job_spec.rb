@@ -29,4 +29,21 @@ RSpec.describe Internal::CheckNewVersionsJob do
     job
     expect(reconsile_premium_config_service).to have_received(:perform)
   end
+
+  context 'when self-hosted enterprise' do
+    before do
+      allow(ChatwootApp).to receive(:self_hosted_enterprise?).and_return(true)
+      allow(ChatwootHub).to receive(:sync_with_hub).and_return({})
+    end
+
+    it 'does not update plan info from hub' do
+      job
+      expect(InstallationConfig.find_by(name: 'INSTALLATION_PRICING_PLAN')).to be_nil
+    end
+
+    it 'still calls Internal::ReconcilePlanConfigService' do
+      job
+      expect(reconsile_premium_config_service).to have_received(:perform)
+    end
+  end
 end
