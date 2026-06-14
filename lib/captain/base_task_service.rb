@@ -32,6 +32,10 @@ class Captain::BaseTaskService
   end
 
   def api_base
+    # Use LLM API base for non-OpenAI providers
+    llm_base = Llm::Config.llm_api_base
+    return "#{llm_base.chomp('/')}/v1" if llm_base.present? && Llm::Config.local_provider?
+
     endpoint = InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_ENDPOINT')&.value.presence || 'https://api.openai.com/'
     endpoint = endpoint.chomp('/')
     "#{endpoint}/v1"
@@ -191,7 +195,8 @@ class Captain::BaseTaskService
   end
 
   def system_llm_credential
-    { api_key: system_api_key, source: :system } if system_api_key.present?
+    key = system_api_key || Llm::Config.llm_api_key
+    { api_key: key, source: :system } if key.present?
   end
 
   def openai_hook

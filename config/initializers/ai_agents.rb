@@ -19,6 +19,10 @@ Rails.application.config.after_initialize do
       config.default_model = model
       config.debug = false
     end
+  elsif llm_provider != 'openai' && llm_api_base.blank?
+    Rails.logger.warn "[Captain V2] LLM provider is '#{llm_provider}' but CAPTAIN_LLM_API_BASE is not set. " \
+                       "The Agents SDK requires an API base URL for non-OpenAI providers. " \
+                       "Set CAPTAIN_LLM_API_BASE (e.g. http://localhost:11434 for Ollama)."
   elsif api_key.present?
     Agents.configure do |config|
       config.openai_api_key = api_key

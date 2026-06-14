@@ -52,9 +52,10 @@ module Concerns::Agentable
 
   def model_supports_tools?
     model_config = Llm::Models.models[agent_model.to_s]
-    # Default to true for cloud models; check flag for self-hosted
+    # Default to true for cloud models and unknown models with local providers;
+    # check supports_tools flag for registered self-hosted models
     return true unless model_config&.dig('provider') == 'self_hosted' || local_provider?
-    model_config['supports_tools'] != false
+    model_config&.dig('supports_tools') != false
   end
 
   def agent_response_schema
