@@ -31,11 +31,24 @@ module Llm::Models
             display_name: model['display_name'],
             provider: model['provider'],
             coming_soon: model['coming_soon'],
-            credit_multiplier: model['credit_multiplier']
-          }
+            credit_multiplier: model['credit_multiplier'],
+            supports_tools: model['supports_tools'],
+            embedding_dimensions: model['embedding_dimensions']
+          }.compact
         end,
         default: feature['default']
       }
+    end
+
+    # Check if a model is a self-hosted model (either in the registry or when a
+    # self-hosted provider is active). Self-hosted models are dynamic — users can
+    # pull whatever they want — so strict validation is skipped.
+    def self_hosted_model?(model_name)
+      models.dig(model_name.to_s, 'provider') == 'self_hosted' || self_hosted_provider_active?
+    end
+
+    def self_hosted_provider_active?
+      Llm::Config.local_provider?
     end
   end
 end

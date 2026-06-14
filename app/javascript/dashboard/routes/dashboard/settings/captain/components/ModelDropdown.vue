@@ -23,6 +23,7 @@ const PROVIDER_ICONS = {
   anthropic: 'i-ri-anthropic-line',
   mistral: 'i-logos-mistral-icon',
   gemini: 'i-woot-gemini',
+  self_hosted: 'i-ri-server-line',
 };
 
 const iconForModel = model => {

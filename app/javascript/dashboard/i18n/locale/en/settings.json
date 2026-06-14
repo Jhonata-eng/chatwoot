@@ -405,8 +405,13 @@
       "TITLE": "Model Configuration",
       "DESCRIPTION": "Select AI models for different features.",
       "SELECT_MODEL": "Select model",
+      "ENTER_MODEL_NAME": "Enter model name",
+      "DISCOVER": "Discover",
+      "NO_MODELS_FOUND": "No models found. Make sure Ollama is running and models are pulled.",
       "CREDITS_PER_MESSAGE": "{credits} credit/message",
       "COMING_SOON": "Coming soon",
+      "OLLAMA_WARNING": "When using Ollama models, ensure your Ollama server is running and the model is pulled. Some models may not support tool calling.",
+      "RE_EMBED_WARNING": "Changing the embedding model or dimensions requires re-indexing all embeddings. This may take some time.",
       "EDITOR": {
         "TITLE": "Editor Features",
         "DESCRIPTION": "Powers smart compose, grammar corrections, tone adjustments, and content enhancement in your message editor."

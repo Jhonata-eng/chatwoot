@@ -46,6 +46,17 @@ module Concerns::Agentable
     InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_MODEL')&.value.presence || LlmConstants::DEFAULT_MODEL
   end
 
+  def local_provider?
+    Llm::Config.local_provider?
+  end
+
+  def model_supports_tools?
+    model_config = Llm::Models.models[agent_model.to_s]
+    # Default to true for cloud models; check flag for self-hosted
+    return true unless model_config&.dig('provider') == 'self_hosted' || local_provider?
+    model_config['supports_tools'] != false
+  end
+
   def agent_response_schema
     Captain::ResponseSchema
   end

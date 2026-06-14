@@ -63,6 +63,7 @@ Rails.application.routes.draw do
           end
           namespace :captain do
             resource :preferences, only: [:show, :update]
+            resources :local_models, only: [:index]
             resources :assistants do
               member do
                 post :playground

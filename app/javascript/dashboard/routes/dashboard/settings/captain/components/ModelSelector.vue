@@ -1,7 +1,10 @@
 <script setup>
+import { computed } from 'vue';
+import { useCaptainConfigStore } from 'dashboard/store/captain/preferences';
 import ModelDropdown from './ModelDropdown.vue';
+import ModelInput from './ModelInput.vue';
 
-defineProps({
+const props = defineProps({
   featureKey: {
     type: String,
     required: true,
@@ -22,6 +25,16 @@ defineProps({
 
 const emit = defineEmits(['change']);
 
+const captainConfigStore = useCaptainConfigStore();
+
+// Check if the selected model for this feature is a self-hosted model
+const isSelfHostedModel = computed(() => {
+  const selectedModel = captainConfigStore.getSelectedModelForFeature(props.featureKey);
+  if (!selectedModel) return false;
+  const modelInfo = captainConfigStore.getModels[selectedModel];
+  return modelInfo?.provider === 'self_hosted';
+});
+
 const handleModelChange = ({ feature, model }) => {
   emit('change', { feature, model });
 };
@@ -38,8 +51,13 @@ const handleModelChange = ({ feature, model }) => {
       </h4>
       <p class="text-sm text-n-slate-11 mt-0.5">{{ description }}</p>
     </div>
+    <ModelInput
+      v-if="isAllowed && isSelfHostedModel"
+      :feature-key="featureKey"
+      @change="handleModelChange"
+    />
     <ModelDropdown
-      v-if="isAllowed"
+      v-else-if="isAllowed"
       :feature-key="featureKey"
       @change="handleModelChange"
     />

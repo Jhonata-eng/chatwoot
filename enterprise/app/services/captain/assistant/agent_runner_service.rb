@@ -136,8 +136,43 @@ class Captain::Assistant::AgentRunnerService
   end
 
   def build_and_wire_agents
+    # When the current model does not support tool calling (e.g. some self-hosted models),
+    # build agents without tools to avoid API errors.
+    if @assistant.local_provider? && !@assistant.model_supports_tools?
+      build_simple_agents
+    else
+      build_tool_augmented_agents
+    end
+  end
+
+  def build_tool_augmented_agents
     assistant_agent = @assistant.agent
     scenario_agents = @assistant.scenarios.enabled.map(&:agent)
+
+    assistant_agent.register_handoffs(*scenario_agents) if scenario_agents.any?
+    scenario_agents.each { |scenario_agent| scenario_agent.register_handoffs(assistant_agent) }
+
+    [assistant_agent] + scenario_agents
+  end
+
+  def build_simple_agents
+    # Build agents without tools for models that don't support function calling
+    assistant_agent = Agents::Agent.new(
+      name: @assistant.agent_name,
+      instructions: ->(context) { @assistant.agent_instructions(context) },
+      model: @assistant.agent_model,
+      temperature: @assistant.temperature.to_f || 0.7,
+      response_schema: Captain::ResponseSchema
+    )
+
+    scenario_agents = @assistant.scenarios.enabled.map do |scenario|
+      Agents::Agent.new(
+        name: scenario.agent_name,
+        instructions: ->(context) { scenario.agent_instructions(context) },
+        model: @assistant.agent_model,
+        temperature: scenario.temperature.to_f || 0.7
+      )
+    end
 
     assistant_agent.register_handoffs(*scenario_agents) if scenario_agents.any?
     scenario_agents.each { |scenario_agent| scenario_agent.register_handoffs(assistant_agent) }

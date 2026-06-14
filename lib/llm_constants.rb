@@ -12,6 +12,7 @@ module LlmConstants
     'anthropic' => %w[claude-],
     'google' => %w[gemini-],
     'mistral' => %w[mistral- codestral-],
-    'deepseek' => %w[deepseek-]
+    'deepseek' => %w[deepseek-],
+    'self_hosted' => []
   }.freeze
 end

@@ -57,9 +57,13 @@ class Captain::BaseTaskService
 
   def execute_ruby_llm_request(model:, messages:, schema: nil, tools: [])
     credential = llm_credential
+    chat_params = Llm::Config.chat_params_for(model)
 
-    Llm::Config.with_api_key(credential[:api_key], api_base: api_base) do |context|
-      chat = build_chat(context, model: model, messages: messages, schema: schema, tools: tools)
+    Llm::Config.with_api_key(
+      credential[:api_key],
+      api_base: api_base
+    ) do |context|
+      chat = build_chat(context, model: model, messages: messages, schema: schema, tools: tools, provider: chat_params[:provider], assume_model_exists: chat_params[:assume_model_exists])
 
       conversation_messages = messages.reject { |m| m[:role] == 'system' }
       return { error: 'No conversation messages provided', error_code: 400, request_messages: messages } if conversation_messages.empty?
@@ -72,8 +76,11 @@ class Captain::BaseTaskService
     { error: e.message, request_messages: messages }
   end
 
-  def build_chat(context, model:, messages:, schema: nil, tools: [])
-    chat = context.chat(model: model)
+  def build_chat(context, model:, messages:, schema: nil, tools: [], provider: nil, assume_model_exists: nil)
+    chat_opts = { model: model }
+    chat_opts[:provider] = provider if provider
+    chat_opts[:assume_model_exists] = assume_model_exists if assume_model_exists
+    chat = context.chat(**chat_opts)
     system_msg = messages.find { |m| m[:role] == 'system' }
     chat.with_instructions(system_msg[:content]) if system_msg
     chat.with_schema(schema) if schema

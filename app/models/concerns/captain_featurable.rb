@@ -33,7 +33,7 @@ module CaptainFeaturable
     stored_models = captain_models || {}
     Llm::Models.feature_keys.each_with_object({}) do |feature_key, result|
       stored_value = stored_models[feature_key]
-      result[feature_key] = if stored_value.present? && Llm::Models.valid_model_for?(feature_key, stored_value)
+      result[feature_key] = if stored_value.present? && valid_model_for_feature?(feature_key, stored_value)
                               stored_value
                             else
                               Llm::Models.default_model_for(feature_key)
@@ -53,10 +53,16 @@ module CaptainFeaturable
 
     captain_models.each do |feature_key, model_name|
       next if model_name.blank?
-      next if Llm::Models.valid_model_for?(feature_key, model_name)
+      next if valid_model_for_feature?(feature_key, model_name)
 
       allowed_models = Llm::Models.models_for(feature_key)
       errors.add(:captain_models, "'#{model_name}' is not a valid model for #{feature_key}. Allowed: #{allowed_models.join(', ')}")
     end
+  end
+
+  # Validates a model for a feature. For self-hosted providers, allows free-text
+  # model names since self-hosted models are dynamic (user pulls whatever they want).
+  def valid_model_for_feature?(feature_key, model_name)
+    Llm::Models.valid_model_for?(feature_key, model_name) || Llm::Models.self_hosted_model?(model_name)
   end
 end

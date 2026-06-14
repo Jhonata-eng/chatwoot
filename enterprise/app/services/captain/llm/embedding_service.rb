@@ -16,8 +16,9 @@ class Captain::Llm::EmbeddingService
   def get_embedding(content, model: @embedding_model)
     return [] if content.blank?
 
+    chat_params = Llm::Config.chat_params_for(model)
     instrument_embedding_call(instrumentation_params(content, model)) do
-      RubyLLM.embed(content, model: model).vectors
+      RubyLLM.embed(content, **chat_params).vectors
     end
   rescue RubyLLM::Error => e
     Rails.logger.error "Embedding API Error: #{e.message}"

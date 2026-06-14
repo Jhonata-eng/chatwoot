@@ -1,10 +1,12 @@
-aproviders:
+providers:
   openai:
     display_name: 'OpenAI'
   anthropic:
     display_name: 'Anthropic'
   gemini:
     display_name: 'Gemini'
+  self_hosted:
+    display_name: 'Self-Hosted'
 
 models:
   gpt-4.1:
@@ -63,6 +65,43 @@ models:
     provider: openai
     display_name: 'Text Embedding 3 Small'
     credit_multiplier: 1
+  # Self-hosted chat models (Ollama, LM Studio, vLLM, LocalAI, etc.)
+  llama3.1:
+    provider: self_hosted
+    display_name: 'Llama 3.1'
+    credit_multiplier: 0
+    supports_tools: true
+  qwen2.5:
+    provider: self_hosted
+    display_name: 'Qwen 2.5'
+    credit_multiplier: 0
+    supports_tools: true
+  phi4:
+    provider: self_hosted
+    display_name: 'Phi 4'
+    credit_multiplier: 0
+    supports_tools: true
+  gemma2:
+    provider: self_hosted
+    display_name: 'Gemma 2'
+    credit_multiplier: 0
+    supports_tools: false
+  mistral:
+    provider: self_hosted
+    display_name: 'Mistral'
+    credit_multiplier: 0
+    supports_tools: true
+  # Self-hosted embedding models
+  nomic-embed-text:
+    provider: self_hosted
+    display_name: 'Nomic Embed Text'
+    credit_multiplier: 0
+    embedding_dimensions: 768
+  mxbai-embed-large:
+    provider: self_hosted
+    display_name: 'MXBai Embed Large'
+    credit_multiplier: 0
+    embedding_dimensions: 1024
 
 features:
   editor:
@@ -77,6 +116,11 @@ features:
         claude-haiku-4.5,
         gemini-3-flash,
         gemini-3-pro,
+        llama3.1,
+        qwen2.5,
+        phi4,
+        gemma2,
+        mistral,
       ]
     default: gpt-4.1-mini
   assistant:
@@ -90,6 +134,9 @@ features:
         claude-sonnet-4.5,
         gemini-3-flash,
         gemini-3-pro,
+        llama3.1,
+        qwen2.5,
+        mistral,
       ]
     default: gpt-5.1
   copilot:
@@ -103,15 +150,27 @@ features:
         claude-sonnet-4.5,
         gemini-3-flash,
         gemini-3-pro,
+        llama3.1,
+        qwen2.5,
+        mistral,
       ]
     default: gpt-5.1
   label_suggestion:
     models:
-      [gpt-4.1-nano, gpt-4.1-mini, gpt-5-mini, gemini-3-flash, claude-haiku-4.5]
+      [
+        gpt-4.1-nano,
+        gpt-4.1-mini,
+        gpt-5-mini,
+        gemini-3-flash,
+        claude-haiku-4.5,
+        llama3.1,
+        phi4,
+        gemma2,
+      ]
     default: gpt-4.1-nano
   audio_transcription:
     models: [whisper-1]
     default: whisper-1
   help_center_search:
-    models: [text-embedding-3-small]
+    models: [text-embedding-3-small, nomic-embed-text, mxbai-embed-large]
     default: text-embedding-3-small

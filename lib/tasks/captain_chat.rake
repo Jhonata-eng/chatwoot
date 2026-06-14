@@ -2,6 +2,47 @@ require 'io/console'
 require 'readline'
 
 namespace :captain do
+  desc 'Migrate embedding vector dimensions and re-embed all records. Usage: rake captain:migrate_embedding_dimensions[768]'
+  task :migrate_embedding_dimensions, [:dimensions] => :environment do |_, args|
+    new_dimensions = args[:dimensions].to_i
+    if new_dimensions <= 0
+      puts '❌ Please provide valid dimensions (e.g., 768, 1024, 1536)'
+      exit 1
+    end
+
+    current = Llm::Config.embedding_dimensions
+    puts "Current embedding dimensions: #{current}"
+    puts "New embedding dimensions: #{new_dimensions}"
+
+    if current == new_dimensions
+      puts '✅ Dimensions are already the same. No migration needed.'
+      exit 0
+    end
+
+    puts '⚠️  This will:'
+    puts "   - Change vector column dimensions from #{current} to #{new_dimensions}"
+    puts '   - Clear all existing embeddings'
+    puts '   - Enqueue background jobs to re-embed all records'
+    puts ''
+    print 'Are you sure? (y/N): '
+    confirm = $stdin.gets.chomp.downcase
+    unless confirm == 'y'
+      puts 'Migration cancelled.'
+      exit 0
+    end
+
+    Captain::Llm::EmbeddingDimensionService.new.migrate_dimensions(new_dimensions)
+    puts '✅ Migration complete. Re-embedding jobs have been enqueued.'
+  end
+
+  desc 'Re-embed all records with the current embedding model'
+  task reembed: :environment do
+    model = Captain::Llm::EmbeddingService.embedding_model
+    puts "Re-embedding all records with model: #{model}"
+    Captain::Llm::EmbeddingDimensionService.new.reembed_all
+    puts '✅ Re-embedding jobs have been enqueued.'
+  end
+
   desc 'Start interactive chat with Captain assistant - Usage: rake captain:chat[assistant_id] or rake captain:chat -- assistant_id'
   task :chat, [:assistant_id] => :environment do |_, args|
     assistant_id = args[:assistant_id] || ARGV[1]
