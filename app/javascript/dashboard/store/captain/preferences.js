@@ -6,6 +6,7 @@ export const useCaptainConfigStore = defineStore('captainConfig', {
     providers: {},
     models: {},
     features: {},
+    embeddingConfig: {},
     uiFlags: {
       isFetching: false,
     },
@@ -54,6 +55,7 @@ export const useCaptainConfigStore = defineStore('captainConfig', {
         this.providers = response.data.providers || {};
         this.models = response.data.models || {};
         this.features = response.data.features || {};
+        this.embeddingConfig = response.data.embedding_config || {};
       } catch (error) {
         // Ignore error
       } finally {
@@ -66,6 +68,7 @@ export const useCaptainConfigStore = defineStore('captainConfig', {
       this.providers = response.data.providers || {};
       this.models = response.data.models || {};
       this.features = response.data.features || {};
+      this.embeddingConfig = response.data.embedding_config || {};
     },
   },
 });

@@ -8,6 +8,12 @@ class Api::V1::Accounts::Captain::PreferencesController < Api::V1::Accounts::Bas
 
   def update
     params_to_update = captain_params
+
+    # When the embedding model changes, check if dimension migration is needed
+    if params_to_update[:captain_models]&.key?('help_center_search')
+      handle_embedding_model_change(params_to_update[:captain_models]['help_center_search'])
+    end
+
     @current_account.captain_models = params_to_update[:captain_models] if params_to_update[:captain_models]
     @current_account.captain_features = params_to_update[:captain_features] if params_to_update[:captain_features]
     @current_account.save!
@@ -21,7 +27,12 @@ class Api::V1::Accounts::Captain::PreferencesController < Api::V1::Accounts::Bas
     {
       providers: Llm::Models.providers,
       models: Llm::Models.models,
-      features: features_with_account_preferences
+      features: features_with_account_preferences,
+      embedding_config: {
+        provider: Llm::Config.embedding_provider,
+        separate_provider: Llm::Config.embedding_provider != Llm::Config.provider,
+        local_provider: Llm::Config.embedding_local_provider?
+      }
     }
   end
 
@@ -72,5 +83,22 @@ class Api::V1::Accounts::Captain::PreferencesController < Api::V1::Accounts::Bas
         selected: account_models[feature_key] || config[:default]
       )
     end
+  end
+
+  # When the embedding model changes to one with different dimensions,
+  # auto-migrate the vector columns and re-embed all records.
+  # Only available in Enterprise edition (where EmbeddingDimensionService exists).
+  def handle_embedding_model_change(model_name)
+    return if model_name.blank?
+    return unless defined?(Captain::Llm::EmbeddingDimensionService)
+
+    model_dims = Captain::Llm::EmbeddingDimensionService.new.dimensions_for_model(model_name)
+    return if model_dims.nil? # Unknown model — user's responsibility
+
+    current_dims = Llm::Config.embedding_dimensions
+    return if model_dims == current_dims # Same dimensions, no migration needed
+
+    # Auto-migrate dimensions and re-embed all records
+    Captain::Llm::EmbeddingDimensionService.new.migrate_dimensions(model_dims)
   end
 end

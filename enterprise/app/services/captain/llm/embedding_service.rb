@@ -6,19 +6,41 @@ class Captain::Llm::EmbeddingService
   def initialize(account_id: nil)
     Llm::Config.initialize!
     @account_id = account_id
-    @embedding_model = InstallationConfig.find_by(name: 'CAPTAIN_EMBEDDING_MODEL')&.value.presence || LlmConstants::DEFAULT_EMBEDDING_MODEL
+    @account = Account.find_by(id: account_id) if account_id
   end
 
-  def self.embedding_model
+  # Returns the embedding model for the given account.
+  # Per-account model preference takes precedence over the global default.
+  def self.embedding_model(account: nil)
+    # Per-account model preference takes precedence
+    account_model = account&.captain_help_center_search_model
+    return account_model if account_model.present? && valid_embedding_model?(account_model)
+
+    # Fall back to global InstallationConfig
     InstallationConfig.find_by(name: 'CAPTAIN_EMBEDDING_MODEL')&.value.presence || LlmConstants::DEFAULT_EMBEDDING_MODEL
   end
 
-  def get_embedding(content, model: @embedding_model)
+  def self.valid_embedding_model?(model_name)
+    Llm::Models.valid_model_for?('help_center_search', model_name) || Llm::Models.self_hosted_model?(model_name)
+  end
+
+  def get_embedding(content, model: nil)
     return [] if content.blank?
 
-    chat_params = Llm::Config.chat_params_for(model)
+    model ||= self.class.embedding_model(account: @account)
+    embedding_params = Llm::Config.embedding_params_for(model)
+
     instrument_embedding_call(instrumentation_params(content, model)) do
-      RubyLLM.embed(content, **chat_params).vectors
+      # Use a dedicated embedding context when the embedding provider
+      # differs from the chat provider and has its own API base.
+      # This ensures embeddings route through the correct provider.
+      if separate_embedding_provider?
+        Llm::Config.with_embedding_context do |context|
+          context.embed(content, **embedding_params).vectors
+        end
+      else
+        RubyLLM.embed(content, **embedding_params).vectors
+      end
     end
   rescue RubyLLM::Error => e
     Rails.logger.error "Embedding API Error: #{e.message}"
@@ -26,6 +48,12 @@ class Captain::Llm::EmbeddingService
   end
 
   private
+
+  # Returns true when the embedding provider is configured separately from the
+  # chat provider and has its own API base URL.
+  def separate_embedding_provider?
+    Llm::Config.embedding_provider != Llm::Config.provider && Llm::Config.embedding_api_base.present?
+  end
 
   def instrumentation_params(content, model)
     {

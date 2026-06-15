@@ -6,8 +6,9 @@ class CaptainLocalModels extends ApiClient {
     super('captain/local_models', { accountScoped: true });
   }
 
-  get() {
-    return axios.get(this.url);
+  get(purpose = null) {
+    const params = purpose ? { purpose } : {};
+    return axios.get(this.url, { params });
   }
 }
 

@@ -65,6 +65,7 @@ models:
     provider: openai
     display_name: 'Text Embedding 3 Small'
     credit_multiplier: 1
+    type: embedding
   # Self-hosted chat models (Ollama, LM Studio, vLLM, LocalAI, etc.)
   llama3.1:
     provider: self_hosted
@@ -97,11 +98,13 @@ models:
     display_name: 'Nomic Embed Text'
     credit_multiplier: 0
     embedding_dimensions: 768
+    type: embedding
   mxbai-embed-large:
     provider: self_hosted
     display_name: 'MXBai Embed Large'
     credit_multiplier: 0
     embedding_dimensions: 1024
+    type: embedding
 
 features:
   editor:

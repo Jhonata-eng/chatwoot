@@ -434,7 +434,9 @@
       },
       "HELP_CENTER_SEARCH": {
         "TITLE": "Help Center Search Indexing",
-        "DESCRIPTION": "Use AI for context aware search inside your help center articles."
+        "DESCRIPTION": "Use AI for context aware search inside your help center articles.",
+        "MODEL_TITLE": "Embedding Model",
+        "MODEL_DESCRIPTION": "Select the AI model to generate embeddings for help center article search"
       },
       "LABEL_SUGGESTION": {
         "TITLE": "Label Suggestion",

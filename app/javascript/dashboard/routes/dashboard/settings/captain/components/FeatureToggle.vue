@@ -5,6 +5,7 @@ import { storeToRefs } from 'pinia';
 import { useCaptainConfigStore } from 'dashboard/store/captain/preferences';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import ModelDropdown from './ModelDropdown.vue';
+import ModelSelector from './ModelSelector.vue';
 
 const props = defineProps({
   featureKey: {
@@ -37,6 +38,12 @@ const hasMultipleModels = computed(() => {
 
 const showModelSelector = computed(() => {
   return isEnabled.value && hasMultipleModels.value;
+});
+
+// Features that support self-hosted/local models need ModelSelector
+// instead of plain ModelDropdown (for free-text input + discovery)
+const useModelSelectorComponent = computed(() => {
+  return props.featureKey === 'help_center_search';
 });
 
 const title = computed(() => {
@@ -132,13 +139,27 @@ const handleModelChange = ({ feature, model }) => {
       v-if="showModelSelector && isAllowed"
       class="flex gap-2 ps-8 relative before:content-[''] before:absolute before:w-0.5 before:h-1/2 before:top-0 before:start-3 before:bg-n-weak after:content-[''] after:absolute after:w-2.5 after:h-3 after:top-[calc(50%-6px)] after:start-3 after:border-b-[0.125rem] after:border-s-[0.125rem] after:rounded-es after:border-n-weak"
     >
-      <div class="flex-1 min-w-0">
-        <h4 class="text-sm font-medium text-n-slate-12">{{ modelTitle }}</h4>
-        <p class="text-sm text-n-slate-11 mt-0.5">{{ modelDescription }}</p>
-      </div>
-      <div class="flex justify-end">
-        <ModelDropdown :feature-key="featureKey" @change="handleModelChange" />
-      </div>
+      <!-- ModelSelector renders its own title/description, skip duplicating them -->
+      <ModelSelector
+        v-if="useModelSelectorComponent"
+        :feature-key="featureKey"
+        :title="modelTitle"
+        :description="modelDescription"
+        :is-allowed="isAllowed"
+        @change="handleModelChange"
+      />
+      <template v-else>
+        <div class="flex-1 min-w-0">
+          <h4 class="text-sm font-medium text-n-slate-12">{{ modelTitle }}</h4>
+          <p class="text-sm text-n-slate-11 mt-0.5">{{ modelDescription }}</p>
+        </div>
+        <div class="flex justify-end">
+          <ModelDropdown
+            :feature-key="featureKey"
+            @change="handleModelChange"
+          />
+        </div>
+      </template>
     </div>
   </div>
 </template>

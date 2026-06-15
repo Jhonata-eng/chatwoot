@@ -219,6 +219,19 @@
   value: 1536
   locked: false
   type: number
+- name: CAPTAIN_EMBEDDING_PROVIDER
+  display_title: 'Embedding Provider (optional)'
+  description: 'Provider for embedding operations. Defaults to the main LLM provider. Set this when embeddings use a different provider (e.g., openai or ollama).'
+  locked: false
+- name: CAPTAIN_EMBEDDING_API_BASE
+  display_title: 'Embedding API Base URL (optional)'
+  description: 'Custom API base URL for the embedding provider. Use when your embedding service is separate from your chat provider. Example: http://localhost:11434'
+  locked: false
+- name: CAPTAIN_EMBEDDING_API_KEY
+  display_title: 'Embedding API Key (optional)'
+  description: 'API key for the embedding provider. Not required for local providers like Ollama.'
+  locked: false
+  type: secret
 - name: CAPTAIN_FIRECRAWL_API_KEY
   display_title: 'FireCrawl API Key (optional)'
   description: 'The FireCrawl API key for the Captain AI service'

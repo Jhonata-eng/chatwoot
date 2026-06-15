@@ -33,7 +33,8 @@ module Llm::Models
             coming_soon: model['coming_soon'],
             credit_multiplier: model['credit_multiplier'],
             supports_tools: model['supports_tools'],
-            embedding_dimensions: model['embedding_dimensions']
+            embedding_dimensions: model['embedding_dimensions'],
+            type: model['type']
           }.compact
         end,
         default: feature['default']
@@ -49,6 +50,16 @@ module Llm::Models
 
     def self_hosted_provider_active?
       Llm::Config.local_provider?
+    end
+
+    # Returns models categorized as embedding models (have embedding_dimensions or type: embedding)
+    def embedding_models
+      models.select { |_k, v| v['type'] == 'embedding' || v['embedding_dimensions'].present? }
+    end
+
+    # Returns models categorized as chat models (not embedding models)
+    def chat_models
+      models.reject { |_k, v| v['type'] == 'embedding' || v['embedding_dimensions'].present? }
     end
   end
 end

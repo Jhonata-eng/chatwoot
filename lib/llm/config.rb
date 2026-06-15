@@ -39,6 +39,24 @@ module Llm::Config
       InstallationConfig.find_by(name: 'CAPTAIN_EMBEDDING_DIMENSIONS')&.value || 1536
     end
 
+    # Embedding-specific provider configuration.
+    # Falls back to the chat provider when not explicitly set.
+    def embedding_provider
+      InstallationConfig.find_by(name: 'CAPTAIN_EMBEDDING_PROVIDER')&.value.presence || provider
+    end
+
+    def embedding_api_base
+      InstallationConfig.find_by(name: 'CAPTAIN_EMBEDDING_API_BASE')&.value.presence || llm_api_base
+    end
+
+    def embedding_api_key
+      InstallationConfig.find_by(name: 'CAPTAIN_EMBEDDING_API_KEY')&.value.presence || llm_api_key
+    end
+
+    def embedding_local_provider?
+      LOCAL_PROVIDERS.include?(embedding_provider) || !RubyLLM::Provider.providers.key?(embedding_provider.to_sym)
+    end
+
     def local_provider?
       LOCAL_PROVIDERS.include?(provider) || !RubyLLM::Provider.providers.key?(provider.to_sym)
     end
@@ -84,6 +102,60 @@ module Llm::Config
       yield context
     end
 
+    # Returns embedding params with correct provider routing.
+    # Uses the dedicated embedding provider when configured,
+    # falling back to the chat provider when not.
+    # This is essential because many LLM providers (Anthropic, etc.)
+    # don't offer embedding APIs.
+    def embedding_params_for(model_name)
+      active = embedding_provider
+      model_config = Llm::Models.models[model_name.to_s]
+      model_provider = model_config&.dig('provider')
+
+      if model_provider == active || (embedding_local_provider? && model_config.nil?)
+        ruby_llm_provider = resolve_ruby_llm_provider(active)
+        { model: model_name, provider: ruby_llm_provider, assume_model_exists: true }
+      elsif model_provider == 'self_hosted'
+        ruby_llm_provider = resolve_ruby_llm_provider(active)
+        { model: model_name, provider: ruby_llm_provider, assume_model_exists: true }
+      else
+        { model: model_name }
+      end
+    end
+
+    # Creates a per-request RubyLLM context configured for the embedding provider.
+    # Used when the embedding provider differs from the chat provider
+    # and requires separate API credentials.
+    def with_embedding_context
+      initialize!
+      emb_provider = embedding_provider
+      emb_base = embedding_api_base
+      emb_key = embedding_api_key
+
+      context = RubyLLM.context do |config|
+        # Configure OpenAI credentials for backward compat and fallback
+        config.openai_api_key = system_api_key if system_api_key.present?
+        config.openai_api_base = openai_endpoint.chomp('/') if openai_endpoint.present?
+
+        sym = emb_provider.to_sym
+        if RubyLLM::Provider.providers.key?(sym)
+          api_key_method = :"#{sym}_api_key"
+          api_base_method = :"#{sym}_api_base"
+          config.send(api_key_method, emb_key) if emb_key.present? && config.respond_to?(api_key_method)
+          config.send(api_base_method, emb_base.chomp('/')) if emb_base.present? && config.respond_to?(api_base_method)
+        elsif emb_base.present?
+          # Custom OpenAI-compatible embedding provider
+          config.openai_api_key = emb_key || 'dummy-key'
+          config.openai_api_base = emb_base.chomp('/')
+        end
+
+        config.model_registry_file = Rails.root.join('config/llm_models.json').to_s
+        config.logger = Rails.logger
+      end
+
+      yield context
+    end
+
     private
 
     def configure_ruby_llm
@@ -94,6 +166,9 @@ module Llm::Config
 
         # Dynamically configure the active provider
         configure_active_provider(config)
+
+        # Configure the embedding provider if it differs from the chat provider
+        configure_embedding_provider(config)
 
         config.model_registry_file = Rails.root.join('config/llm_models.json').to_s
         config.logger = Rails.logger
@@ -120,6 +195,26 @@ module Llm::Config
         config.openai_api_key = key || 'dummy-key'
         config.openai_api_base = base.chomp('/')
       end
+    end
+
+    # Configures the embedding provider's credentials when it differs from the chat provider.
+    # This ensures RubyLLM has both providers' API keys available at the global level.
+    # For custom OpenAI-compatible embedding endpoints, use `with_embedding_context` instead.
+    def configure_embedding_provider(config)
+      emb_provider = embedding_provider
+      return if emb_provider == provider # Same as chat, already configured
+
+      emb_base = embedding_api_base
+      emb_key = embedding_api_key
+      sym = emb_provider.to_sym
+
+      if RubyLLM::Provider.providers.key?(sym)
+        api_key_method = :"#{sym}_api_key"
+        api_base_method = :"#{sym}_api_base"
+        config.send(api_key_method, emb_key) if emb_key.present? && config.respond_to?(api_key_method)
+        config.send(api_base_method, emb_base.chomp('/')) if emb_base.present? && config.respond_to?(api_base_method)
+      end
+      # Custom OpenAI-compatible embedding providers are handled via with_embedding_context
     end
 
     def system_api_key

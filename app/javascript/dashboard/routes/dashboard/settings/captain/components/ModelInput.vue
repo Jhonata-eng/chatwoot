@@ -43,7 +43,9 @@ async function discoverModels() {
   isLoadingModels.value = true;
   discoveryError.value = '';
   try {
-    const response = await CaptainLocalModelsAPI.get();
+    // Filter discovered models by purpose when the feature requires embedding models
+    const purpose = props.featureKey === 'help_center_search' ? 'embedding' : 'chat';
+    const response = await CaptainLocalModelsAPI.get(purpose);
     discoveredModels.value = response.data.models || [];
     if (discoveredModels.value.length === 0 && response.data.error) {
       discoveryError.value = response.data.error;
